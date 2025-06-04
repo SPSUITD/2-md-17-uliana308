@@ -23,16 +23,14 @@ class SoundManager:
         }
 
     def play_sound(self, name, loop=False, volume=0.8):
-        # Проверяем, есть ли активный проигрыватель и играет ли он
         player = self.players.get(name)
-        if player is None or not player.playing:
+        if player is None:
             sound = self.sounds.get(name)
-            # Воспроизведение с возможностью зациклить
             self.players[name] = arcade.play_sound(sound, volume=volume, loop=loop)
 
     def stop_sound(self, name):
         player = self.players.get(name)
-        if player and player.playing:
+        if player:
             player.pause()
 
     def play_hover_sound(self):
@@ -44,13 +42,8 @@ class SoundManager:
     def energy_collecting_sound(self):
         arcade.play_sound(self.sounds['energy'])
 
-    # Метод для запуска зацикленных звуков
     def play_looped_sound(self, name, volume=0.8):
         self.play_sound(name, loop=True, volume=volume)
-
-    # Метод для остановки зацикленных звуков
-    def stop_sound_by_name(self, name):
-        self.stop_sound(name)
     
     def stop_all_sounds(self):
         for name in self.players:

@@ -11,7 +11,6 @@ WIN_BACKGROUND = "sprites/win.png"
 YES_BUTTON_IMAGE = "sprites/yesButton.png"
 NO_BUTTON_IMAGE = "sprites/noButton.png"
 
-
 class WinView(arcade.View):
 
     def __init__(self, window): 
@@ -57,7 +56,6 @@ class WinView(arcade.View):
         sound_manager.play_looped_sound('loser')
             
 
- 
     def on_draw(self):
 
         arcade.draw_texture_rect(

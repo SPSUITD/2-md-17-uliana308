@@ -28,8 +28,7 @@ PLAYER_START_Y = 230
 NUMBER_OF_LEVELS = 2
 
 class StartView(arcade.View):
-
-
+    
     def __init__(self, window): 
 
         super().__init__(window)
@@ -137,7 +136,7 @@ class StartView(arcade.View):
     def on_mouse_press(self, x, y, button, modifiers):
         if self.start_button.collides_with_point((x, y)):
             sound_manager.play_click_sound()  
-            sound_manager.stop_sound_by_name('menu')
+            sound_manager.stop_sound('menu')
             game_view = GameView(self.window)
             game_view.setup()
             self.window.show_view(game_view)
@@ -225,7 +224,6 @@ class GameView(arcade.View):
             self.show_hint = True
             self.current_hint_index = 2
 
-        
         self.player_texture = arcade.load_texture("sprites/pers/right1.png")
 
         self.player_sprite = arcade.Sprite(self.player_texture)
@@ -398,7 +396,7 @@ class GameView(arcade.View):
             sound_manager.play_looped_sound('fly')
         else:
             self.is_flying = False
-            sound_manager.stop_sound_by_name('fly')
+            sound_manager.stop_sound('fly')
 
         if self.collide:
             self.player_dy = 0
@@ -432,14 +430,17 @@ class GameView(arcade.View):
         target_velocity_y = 0
 
         if self.is_flying:
-            self.velocity_y += (target_velocity_y - self.velocity_y) * 0.05 #коэффициент сглаживания
-            self.player_sprite.center_y += self.velocity_y * delta_time
+
             if arcade.key.UP in self.keys_pressed:
                 target_velocity_y = 400  
             elif arcade.key.DOWN in self.keys_pressed:
                 target_velocity_y = -400
             else:
-                target_velocity_y = 0
+                target_velocity_y = 0            
+                
+            self.velocity_y += (target_velocity_y - self.velocity_y) * 0.05 #коэффициент сглаживания
+            self.player_sprite.center_y += self.velocity_y * delta_time
+
         elif self.player_jump:
             self.player_sprite.center_y += 600 * delta_time
             if self.player_sprite.center_y > self.jump_start + JUMP_MAX_HEIHT:
@@ -447,18 +448,13 @@ class GameView(arcade.View):
         else:            
             self.player_sprite.center_y -= self.player_dy 
 
-            # обновляем текущую вертикальную скорость с помощью плавного интерполирования
-        self.velocity_y += (target_velocity_y - self.velocity_y) * 0.05 #коэффициент сглаживания
-        self.player_sprite.center_y += self.velocity_y * delta_time
-        
-
     def calculate_collision(self):
         self.collide = False
         self.on_platform = False
 
         for block in self.scene["platforms"]:
             # Проверка по горизонтали 
-            if (self.player_sprite.center_x + self.player_sprite.width / 4 >= block.center_x - block.width / 2 and
+            if (self.player_sprite.center_x + self.player_sprite.width / 4 >= block.center_x - block.width / 2 and 
                 self.player_sprite.center_x + 10 <= block.center_x + block.width / 2):
 
                 platform_top = block.center_y + block.height / 2
@@ -498,7 +494,7 @@ class GameView(arcade.View):
 
                     self.cloud_tiles_to_disappear = self.current_cloud_tiles.copy()
                     break   
-                self.cloud_time_accumulator = 0
+
 
         for block in self.scene["energy"]:
             if (self.player_sprite.center_x + self.player_sprite.width / 2 >= block.center_x - block.width / 2 and \
@@ -527,7 +523,6 @@ class GameView(arcade.View):
                     self.wings_tiles_to_disappear = self.current_wings_tiles.copy()
                     break   
             
-            self.wings_time_accumulator = 0
 
         for monster_sprite in self.monster_list:
             if arcade.check_for_collision(self.player_sprite, monster_sprite):
@@ -551,7 +546,7 @@ class GameView(arcade.View):
 
     def update_cloud_disappearance(self, delta_time):
         # Обработка исчезновения облаков
-        if hasattr(self, 'cloud_tiles_to_disappear') and self.cloud_tiles_to_disappear:
+        if self.cloud_tiles_to_disappear:
             self.cloud_time_accumulator += delta_time
             if self.cloud_time_accumulator >= 0.4:
                 # Удаляем тайлы облака
@@ -564,7 +559,7 @@ class GameView(arcade.View):
                 self.cloud_tiles_to_disappear = None
                 self.cloud_time_accumulator = 0
 
-        elif hasattr(self, 'cloud_is_disappeared') and self.cloud_is_disappeared:
+        elif self.cloud_is_disappeared:
             self.cloud_disappear_time += delta_time
             if self.cloud_disappear_time >= 1:
                 # Возвращаем тайлы облака
@@ -577,7 +572,7 @@ class GameView(arcade.View):
 
     def update_wings_disappearance(self, delta_time):
     # Обработка исчезновения крыльев
-        if hasattr(self, 'wings_tiles_to_disappear') and self.wings_tiles_to_disappear:
+        if self.wings_tiles_to_disappear:
             self.wings_time_accumulator += delta_time
             if self.wings_time_accumulator >= 0:
                 # Удаляем тайлы крыльев
@@ -590,7 +585,7 @@ class GameView(arcade.View):
                 self.wings_tiles_to_disappear = None
                 self.wings_time_accumulator = 0
 
-        elif hasattr(self, 'wings_is_disappeared') and self.wings_is_disappeared:
+        elif self.wings_is_disappeared:
             self.wings_disappear_time += delta_time
             if self.wings_disappear_time >= 5:
                 # Возвращаем тайлы крыльев
@@ -603,13 +598,12 @@ class GameView(arcade.View):
 
     # Обновление монстра:
     def update_monster(self, delta_time):
-        # Выбираем текущие текстуры в зависимости от направления
+
         if self.monster_direction == 1:
             current_textures = self.monster_textures_right
         else:
             current_textures = self.monster_textures_left
 
-        # Обновляем анимацию только если не на паузе
         if not self.monster_pause:
             self.monster_animation_timer += delta_time
             if self.monster_animation_timer >= 0.3:
@@ -628,12 +622,7 @@ class GameView(arcade.View):
 
         # Обновляем позицию
         self.monster_sprite.center_x += self.monster_speed * self.monster_direction
-
-        # Обновляем текстуру в зависимости от направления
-        if self.monster_direction == 1:
-            self.monster_sprite.texture = current_textures[self.monster_texture_index]
-        else:
-            self.monster_sprite.texture = current_textures[self.monster_texture_index]
+        self.monster_sprite.texture = current_textures[self.monster_texture_index]
 
         # Проверка границ
         if self.monster_sprite.center_x >= 1900:
@@ -667,11 +656,9 @@ class GameView(arcade.View):
                         # Возвращаем игрока в стартовую точку
                         self.player_sprite.center_x = self.player_start_x
                         self.player_sprite.center_y = self.player_start_y
-                        self.energy = 5
                         self.level_time = 0
                     else:
                         self.level_timer_active = False
-
 
         if self.player_sprite.center_y + self.player_sprite.height / 2 < 0:
             self.player_sprite.center_x = self.player_start_x
@@ -680,7 +667,7 @@ class GameView(arcade.View):
 
         if self.lives <= 0:
             self.lives = 3  
-            sound_manager.stop_sound_by_name('main')
+            sound_manager.stop_sound('main')
             win_view = WinView(self.window)
             win_view.set_background("sprites/loser_page.png")
             win_view.setup()
@@ -696,7 +683,7 @@ class GameView(arcade.View):
             if self.level < NUMBER_OF_LEVELS:
                 self.level +=1
             else:
-                sound_manager.stop_sound_by_name('main')
+                sound_manager.stop_sound('main')
                 self.background = None
                 win_view = WinView(self.window)
                 win_view.setup()
@@ -714,7 +701,7 @@ class GameView(arcade.View):
         self.gui_camera.use()
 
         arcade.draw_text(
-            f"10/{self.energy}",
+            f"{self.energy}/10",
             x=350,
             y=665,
             color=arcade.color.YELLOW,
